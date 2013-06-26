@@ -106,7 +106,6 @@ CRGB HSVtoRGB(int hue, int sat, int val) {
     return c;
 }
 
-
 void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
@@ -165,167 +164,30 @@ void nonReactiveFade() { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
     
 }
 
+void rotatingRainbow()
+{
+    static byte hue = 0;
+    for(int i = 0;i < NUM_STRIPS;i++)
+    {
+        fill_rainbow(leds[i], ledCount, hue++, 10);
+    }
+}
+
 
 int xAccel;
 void loop()
 {
     Serial.println("Hello World");
     Serial.println(sizeof(leds));
-    
-  nonReactiveFade();
-  LEDS.setBrightness(64);
+
+  rotatingRainbow();
+  //nonReactiveFade();
+  LEDS.setBrightness(32);
   //fillSolid(CRGB::HotPink);
   LEDS.show();
   //fillSolid(CRGB::Pink);
-  delay(10);
+  delay(1);
   LEDS.show();
 	// delay(delayTime);
 }
 
-/*
- void looped() {
- if (Serial.available())
- {
- lastInputLed = getLedFromSerial();
- }
- 
- int delayTime = 75;
- // upper v
- clearLeds();
- race(0, 255, 50,70);
- race(0, 255, 0, 20);
- FastSPI_LED.show();
- delay(delayTime);
- 
- clearLeds();
- //lower v
- setRange(0, 128, 137,167);
- setRange(0, 128, 70, 99);
- FastSPI_LED.show();
- 
- delay(delayTime);
- clearLeds();
- FastSPI_LED.show();
- delay(delayTime);
- 
- //bottom ring
- setRange(0, 255, 369,396);
- setRange(0, 255, 396, 421);
- FastSPI_LED.show();
- delay(delayTime);
- 
- clearLeds();
- //middle ring
- setRange(0, 255, 281,307);
- setRange(0, 255, 307, 331);
- FastSPI_LED.show();
- delay(delayTime);
- 
- clearLeds();
- //upper ring
- setRange(0, 255, 199,222);
- setRange(0, 128, 222, 245);
- FastSPI_LED.show();
- delay(delayTime);
- 
- //  leds[lastInputLed].r = 255;
- //  leds[lastInputLed].g = 0;
- //  leds[lastInputLed].b = 0;
- 
- FastSPI_LED.show();
- }
- 
- void playFrame()
- {
- // check time
- // clear leds
- clearLeds();
- // loop over the list of animations
- for (int i = 0;i<animationCount;i++)
- {
- //    animations[i]
- }
- // show the leds
- // delay until the next frame
- }
- 
- 
- 
- int getLedFromSerial() {
- // if there's any serial available, read it:
- while (Serial.available() > 0) {
- 
- // look for the next valid integer in the incoming serial stream:
- int iLed = Serial.parseInt();
- // look for the newline. That's the end of your
- // sentence:
- if (Serial.read() == '\n') {
- // constrain the values to 0 - 255 and invert
- // if you're using a common-cathode LED, just use "constrain(color, 0, 255);"
- iLed = constrain(iLed, 0, ledCount);
- Serial.print("led ");
- Serial.println(iLed);
- 
- return iLed;
- }
- }
- }
- 
- void colorFromAccelerormeter()
- {
- byte x = analogRead(A0);
- 
- clearLeds();
- for (int i = 0;i < ledCount;i++)
- {
- if (x > 128)
- leds[i].r = x;
- else
- leds[i].b = x;
- }
- }
- 
- void race(byte color, byte intensity, int first, int last)
- {
- for(int i = first;i< last;i++)
- {
- leds[i].r = intensity;
- }
- }
- 
- void setRange(byte color, byte intensity, int first, int last)
- {
- for (int i = first; i < last;i++)
- {
- switch(color)
- {
- case 0:
- leds[i].r = intensity;
- break;
- case 1:
- leds[i].g = intensity;
- break;
- case 2:
- leds[i].b = intensity;
- break;
- }
- }
- 
- }
- 
- 
- void progress() {
- for (int frame = 0;frame < ledCount;frame++)
- {
- clearLeds();
- for(int i = frame; i < ledCount; i++ )
- {
- leds[i].r = 255;
- leds[i].g = 0;
- leds[i].b = 0;
- }
- FastSPI_LED.show();
- delay(5);
- }
- }
- */

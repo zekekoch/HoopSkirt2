@@ -1,8 +1,8 @@
 #include <FastSPI_LED2.h>
 
 //const int ledCount = 185;
-const int ledCount = 95;
-const int NUM_STRIPS = 3;
+const int ledCount = 84;
+const int NUM_STRIPS = 2;
 CRGB leds[NUM_STRIPS][ledCount];
 
 int BOTTOM_INDEX = 0;
@@ -112,9 +112,8 @@ void setup()
   // setting brightness to 25% brightness
   LEDS.setBrightness(8);
   
-  LEDS.addLeds<WS2811,4, GRB>(leds[0], ledCount);
-  LEDS.addLeds<WS2811,7, GRB>(leds[1], ledCount);
-  LEDS.addLeds<WS2811,10, GRB>(leds[2], ledCount);
+  LEDS.addLeds<WS2811,2, GRB>(leds[0], ledCount);
+  LEDS.addLeds<WS2811,3, GRB>(leds[1], ledCount);
       
   Serial.begin(57600);
   fillSolid(0,0,0); //-BLANK STRIP
@@ -173,21 +172,96 @@ void rotatingRainbow()
     }
 }
 
+void threeColorEntrance()
+{
+  for (int i = 0;i<ledCount;i++)
+  {
+    if (i%3 == 0)
+        setPixel(i, CRGB::LimeGreen);
+  }
+  LEDS.show();
+  delay(500);
+  for (int i = 0;i<ledCount;i++)
+  {
+    if (i%3 == 1)
+        setPixel(i, CRGB::Purple);
+  }
+  LEDS.show();
+  delay(500);
+  for (int i = 0;i<ledCount;i++)
+  {
+    if (i%3 == 2)
+        setPixel(i, CRGB::Blue);
+  }
+  LEDS.show();
+  delay(1000);
+
+}
+
+void threeColorWipe(boolean firstLoop)
+{
+    if (firstLoop)
+    {
+      for (int i = 0;i<ledCount;i++)
+      {
+        switch(i%3)
+        {
+          case 0:
+            setPixel(i, CRGB::LimeGreen);
+            break;
+          case 1:
+            setPixel(i, CRGB::Purple);
+            break;
+          case 2:
+            setPixel(i, CRGB::Blue);
+            break;
+        }
+      }
+    }
+    else
+    {
+
+      // gross hack
+      CRGB temp0 = leds[0][ledCount-1];
+      CRGB temp1 = leds[1][ledCount-1];
+      for(int i = ledCount-1; i > 0; i-- ) 
+      {
+        leds[0][i] = leds[0][i-1];
+      }
+      for(int i = ledCount-1; i > 0; i-- ) 
+      {
+        leds[1][i] = leds[0][i-1];
+      }
+        leds[0][0] = temp0;
+        leds[1][0] = temp1;
+
+    }
+}
+
 
 int xAccel;
 void loop()
 {
-    Serial.println("Hello World");
-    Serial.println(sizeof(leds));
+    threeColorEntrance();
+    threeColorWipe(true);
+    for (int i = 0;i<250;i++)
+    {
+        threeColorWipe(false);
+        LEDS.show();
+        delay(100);
+    }
 
-  rotatingRainbow();
-  //nonReactiveFade();
-  LEDS.setBrightness(32);
-  //fillSolid(CRGB::HotPink);
-  LEDS.show();
-  //fillSolid(CRGB::Pink);
-  delay(1);
-  LEDS.show();
-	// delay(delayTime);
+    for (int i = 0;i<1000;i++)
+    {
+        nonReactiveFade();
+        LEDS.show();
+        delay(30);
+    }
+    for (int i = 0;i<1000;i++)
+    {
+        rotatingRainbow();
+        LEDS.show();
+        delay(15);
+    }
 }
 

@@ -1,9 +1,21 @@
 #include <FastSPI_LED2.h>
 
 //const int ledCount = 185;
-const int ledCount = 84;
+const int ledCount = 134;
+const int actualLedCount = 84;
 const int NUM_STRIPS = 2;
-CRGB leds[NUM_STRIPS][ledCount];
+CRGB leds[ledCount];
+CRGB actualLeds[NUM_STRIPS][actualLedCount];
+
+const byte hoopStart = 0;
+const byte hoopEnd = 1;
+byte hoop[3][2] = 
+{ 
+  {0,49},
+  {50,89},
+  {90,133}
+};
+
 
 int BOTTOM_INDEX = 0;
 int TOP_INDEX = int(ledCount/2);
@@ -21,44 +33,63 @@ float tcount = 0.0;      //-INC VAR FOR SIN LOOPS
 int lcount = 0;      //-ANOTHER COUNTING VAR
 
 
-void setPixel(int adex, CRGB c) {
-    for(int i = 0;i<NUM_STRIPS;i++)
-    {
-        leds[i][adex] = c;
-    }
-}
-
-void dimPixel(int adex, byte dim)
+void assert(bool eval, String errorMessage)
 {
-    for(int i = 0;i<NUM_STRIPS;i++)
-    {
-        leds[i][adex].fadeLightBy(dim);
-    }
+  if(!eval)
+    Serial.println(errorMessage);
 }
 
-//-SET THE COLOR OF A SINGLE RGB LED
-void setPixel(int adex, int cred, int cgrn, int cblu) {
-    for(int i = 0;i<NUM_STRIPS;i++)
-    {
-        leds[i][adex] = CRGB(cred, cgrn, cblu);
-    }
-}
+void setPixel(int currentPixel, CRGB c) {
+//  assert(currentPixel < ledCount, "currentPixel > ledCount");
+  if(currentPixel < 50)
+  {
+//    Serial.print("leds[0][");Serial.print(currentPixel);Serial.print("] = ");Serial.println(c);
+    actualLeds[0][currentPixel] = c;
+  } 
+  else
+  {
+//    Serial.println(currentPixel);
+//    Serial.print("leds[1][");Serial.print(currentPixel-actualLedCount);Serial.print("] = ");Serial.println(c);
+    actualLeds[1][currentPixel-50] = c;
+  }
+} 
 
-// fill_solid -   fill a range of LEDs with a solid color
-void fillSolid(byte strand, const CRGB& color)
+CRGB getPixel(int currentPixel)
 {
- fill_solid( leds[strand], ledCount, color);
+  Serial.print("current pixel ");Serial.println(currentPixel);
+  if(currentPixel < 0)
+    return actualLeds[1][ledCount-currentPixel];
+
+  if(currentPixel < 50)
+  {
+    return actualLeds[0][currentPixel];
+  } 
+  else
+  {
+    return actualLeds[1][currentPixel-50];
+  }
 }
+
+int nextThird(int i) {
+    int iN = i + (int)(ledCount / 3);
+    if (iN >= ledCount) {
+        iN = iN % ledCount;
+    }
+    return iN;
+}   
 
 void fillSolid(CRGB color)
 {
-    for(int i = 0;i<NUM_STRIPS;i++)
-        fillSolid(i, color);
+  for(int i = 0;i<3;i++)
+    fillHoop(i, color);
 }
 
-void fillSolid(int cred, int cgrn, int cblu) { //-SET ALL LEDS TO ONE COLOR
-    fillSolid(0, CRGB(cred, cgrn, cblu));    
+void fillHoop(byte whichHoop, CRGB color)
+{
+  for(int i = hoop[whichHoop][hoopStart];i<hoop[whichHoop][hoopEnd];i++)
+    setPixel(i,color);
 }
+
 
 //-FIND INDEX OF HORIZONAL OPPOSITE LED
 int horizontal_index(int i) {
@@ -118,53 +149,48 @@ void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
   // setting brightness to 25% brightness
-  LEDS.setBrightness(16);
+  LEDS.setBrightness(32);
   
-  LEDS.addLeds<WS2811,2, GRB>(leds[0], ledCount);
-  LEDS.addLeds<WS2811,3, GRB>(leds[1], ledCount);
+  LEDS.addLeds<WS2811,2, GRB>(actualLeds[0], actualLedCount);
+  LEDS.addLeds<WS2811,3, GRB>(actualLeds[1], actualLedCount);
       
-  Serial.begin(57600);
-  fillSolid(0,0,0); //-BLANK STRIP
-  
-  LEDS.show();
+  Serial.begin(9600);
+  fillSolid(CRGB::Black); //-BLANK STRIP
+  showLeds(0);
 }
 
-void nonReactiveFade() { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
+void drawTracer(byte trailLength, bool isForward)
+{
+  byte trailDecay = (255-64)/trailLength;
+
+  fillSolid(CRGB::Purple);
+
+  for(int i = 0;i<trailLength;i++)
+  {
+      setPixel(adjacent_cw(idex-i), CHSV(0, 255, 255 - trailDecay*i));
+      setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(128, 255, 255 - trailDecay*i));
+  }  
+}
+
+void nonReactiveFade(CRGB baseColor, CRGB highlightColor) { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
     static long lastBounceTime;
     const int bounceInterval = 250;
     
     static byte phase = 0;
-    phase++;
-    static byte trailLength = 5;
-    if (phase % 8 == 0)
-        trailLength = random(4,12);
-    Serial.print("trailLength: ");Serial.println(trailLength);
+    static byte trailLength = 8;
     byte trailDecay = (255-64)/trailLength;
-    Serial.print("trailDecay: ");Serial.println(trailDecay);
-    static byte hue = random(0,10);
 
-    fillSolid(HSVtoRGB(200, 255, 128));
+    fillSolid(baseColor);
     
+    drawTracer(trailLength, bounceForward);
     if (bounceForward) {
-        Serial.print("bouncing forward");Serial.println(idex);
-        for(int i = 0;i<trailLength;i++)
-        {
-            setPixel(adjacent_cw(idex-i), HSVtoRGB(hue, 255, 255 - trailDecay*i));
-        }
-        idex++;
-        if (idex == ledCount) {
+        if (++idex == ledCount) {
             bounceForward = !bounceForward;
             idex--;
         }
     } else {
-        Serial.print("bouncing backwards idex:");Serial.print(idex);
         //todo: the trail is running off the array
-        for(int i = 0;i<trailLength;i++)
-        {
-            setPixel(adjacent_ccw(idex+i), HSVtoRGB(hue, 255, 255 - trailDecay*i));
-        }
-        idex--;
-        if (idex == 0) {
+        if (--idex == 0) {
             bounceForward = !bounceForward;
         }
     }
@@ -176,7 +202,7 @@ void rotatingRainbow()
     static byte hue = 0;
     for(int i = 0;i < NUM_STRIPS;i++)
     {
-        fill_rainbow(leds[i], ledCount, hue++, 10);
+        fill_rainbow(actualLeds[i], ledCount, hue++, 10);
     }
 }
 
@@ -185,105 +211,184 @@ void colorWipe(CRGB color)
   for(int i = 0;i<ledCount;i++)
   {
     setPixel(i, color);
-    LEDS.show();
-    delay(50);
+    showLeds(25);
   }
 }
 
-void setEvery9th(byte index, CRGB color)
+
+
+void setEveryNth(byte index, byte num, CRGB color)
 {
   for (int i = 0;i<ledCount;i++)
   {
-    if (i%9 == index)
+    if (i%num == index)
         setPixel(i, color);
   }
+  showLeds(200);
+}
+
+void everyThirdEntrance(CRGB firstColor, CRGB secondColor, CRGB thirdColor)
+{
+  setEveryNth(0, 3, firstColor);
+  setEveryNth(1, 3, secondColor);
+  setEveryNth(2, 3, thirdColor);
+}
+
+void threeColorEntrance(CRGB firstColor, CRGB secondColor, CRGB thirdColor)
+{
+  setEveryNth(0, 9, firstColor);
+  setEveryNth(1, 9, firstColor);
+  setEveryNth(2, 9, firstColor);
+  setEveryNth(3, 9, secondColor);
+  setEveryNth(4, 9, secondColor);
+  setEveryNth(5, 9, secondColor);
+  setEveryNth(6, 9, thirdColor);
+  setEveryNth(7, 9, thirdColor);
+  setEveryNth(8, 9, thirdColor);
+}
+
+void threeColorAlternate(boolean firstLoop, CRGB firstColor, CRGB secondColor, CRGB thirdColor)
+{
+  threeColorEntrance(firstColor, secondColor, thirdColor);
+  for (int i = 0;i<ledCount;i++)
+  {
+    switch(i%3)
+    {
+      case 0:
+        setPixel(i, firstColor);
+        break;
+      case 1:
+        setPixel(i, secondColor);
+        break;
+      case 2:
+        setPixel(i, thirdColor);
+        break;
+    }
+  }
+}
+
+
+void threeColorWipe(CRGB firstColor, CRGB secondColor, CRGB thirdColor)
+{
+  for (int i = 0;i<ledCount;i++)
+  {
+    switch(i%9)
+    {
+      case 0:
+      case 1:
+      case 2:          
+        setPixel(i, firstColor);
+        break;
+      case 3:
+      case 4:
+      case 5:
+        setPixel(i, secondColor);
+        break;
+      case 6:
+      case 7:
+      case 8:
+        setPixel(i, thirdColor);
+        break;
+    }
+  }
+}
+
+void rotateStrip(long ms)
+{
+  rotateStrip(ms, 75);
+}
+
+void rotateStrip(long ms, long delayms)
+{
+  long endTime = millis() + ms;
+
+  while(millis() < endTime)
+  {
+
+    // store the last pixel
+    CRGB temp = getPixel(ledCount-1);
+
+    // copy the last one to the previous one
+    for(int i = ledCount-1; i > 0; i--) 
+    {
+      setPixel(i, getPixel(i-1));
+    }
+
+    //set the first one to temportarily stored one
+    setPixel(0, temp);
+    showLeds(delayms);
+  }
+}
+
+void showLeds(long delayms)
+{
+//  for(int i = 0;i<ledCount;i++)
+//  {
+//    setPixel(i, leds[i]);
+//  }
+
   LEDS.show();
-  delay(200);
-
-}
-
-void threeColorEntrance()
-{
-  colorWipe(CRGB::LimeGreen);
-  colorWipe(CRGB::Purple);
-  colorWipe(CRGB::Blue);
-
-  setEvery9th(0, CRGB::LimeGreen);
-  setEvery9th(1, CRGB::LimeGreen);
-  setEvery9th(2, CRGB::LimeGreen);
-  setEvery9th(3, CRGB::Purple);
-  setEvery9th(4, CRGB::Purple);
-  setEvery9th(5, CRGB::Purple);
-  setEvery9th(6, CRGB::Blue);
-  setEvery9th(7, CRGB::Blue);
-  setEvery9th(8, CRGB::Blue);
-}
-
-void threeColorWipe(boolean firstLoop)
-{
-    if (firstLoop)
-    {
-      for (int i = 0;i<ledCount;i++)
-      {
-        switch(i%9)
-        {
-          case 0:
-          case 1:
-          case 2:          
-            setPixel(i, CRGB::LimeGreen);
-            break;
-          case 3:
-          case 4:
-          case 5:
-            setPixel(i, CRGB::Purple);
-            break;
-          case 6:
-          case 7:
-          case 8:
-            setPixel(i, CRGB::Blue);
-            break;
-        }
-      }
-    }
-    else
-    {
-
-      for (byte strip = 0;strip<NUM_STRIPS;strip++)
-      {
-        CRGB temp = leds[strip][ledCount-1];
-        for(int i = ledCount-1; i > 0; i-- ) 
-        {
-          leds[strip][i] = leds[strip][i-1];
-        }
-        leds[strip][0] = temp;
-      }
-    }
+  delay(delayms);
 }
 
 
 int xAccel;
 void loop()
 {
-    threeColorEntrance();
-    threeColorWipe(true);
-    for (int i = 0;i<250;i++)
-    {
-        threeColorWipe(false);
-        LEDS.show();
-        delay(75);
-    }
+  const CRGB highlightColor = CRGB::Red;
+  const CRGB contrastColor = CRGB::LimeGreen;
+  const CRGB baseColor = CRGB::Purple;
+  const CRGB color4 = CRGB::Black;
 
-    for (int i = 0;i<1000;i++)
-    {
-        nonReactiveFade();
-        LEDS.show();
-        delay(30);
-    }
-    for (int i = 0;i<1000;i++)
-    {
-        rotatingRainbow();
-        LEDS.show();
-        delay(15);
-    }
+  threeColorWipe(contrastColor, baseColor, baseColor);
+  rotateStrip(30);
+
+
+  fillHoop(0,CRGB::Red);
+  showLeds(2000);
+
+  fillHoop(1,CRGB::Blue);
+  showLeds(2000);
+
+  fillHoop(2,CRGB::Green);
+  showLeds(2000);
+
+  colorWipe(contrastColor);
+  colorWipe(highlightColor);
+  colorWipe(baseColor);
+
+  threeColorWipe(contrastColor, baseColor, baseColor);
+  rotateStrip(3000, 75);
+
+  threeColorWipe(contrastColor, baseColor, highlightColor);
+  rotateStrip(5000, 75);
+
+  for(int i = 50;i>0;i--)
+  {
+    threeColorWipe(contrastColor, baseColor, highlightColor);
+    rotateStrip(50+i, 75);
+    threeColorWipe(highlightColor, contrastColor, baseColor);
+    rotateStrip(50+i, 75);
+    threeColorWipe(baseColor, highlightColor, contrastColor);
+    rotateStrip(50+i, 75);
+  }
+
+  threeColorWipe(contrastColor, baseColor, highlightColor);
+  rotateStrip(5000);
+
+//  threeColorWipe(baseColor, baseColor, highlightColor);
+//  rotateStrip(3000);
+
+  for (int i = 0;i<3000;i++)
+  {
+      nonReactiveFade(baseColor, highlightColor);
+      showLeds(30);
+  }
+
+  for (int i = 0;i<1000;i++)
+  {
+      rotatingRainbow();
+      showLeds(15);
+  }
 }
 

@@ -28,6 +28,14 @@ void setPixel(int adex, CRGB c) {
     }
 }
 
+void dimPixel(int adex, byte dim)
+{
+    for(int i = 0;i<NUM_STRIPS;i++)
+    {
+        leds[i][adex].fadeLightBy(dim);
+    }
+}
+
 //-SET THE COLOR OF A SINGLE RGB LED
 void setPixel(int adex, int cred, int cgrn, int cblu) {
     for(int i = 0;i<NUM_STRIPS;i++)
@@ -110,7 +118,7 @@ void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
   // setting brightness to 25% brightness
-  LEDS.setBrightness(8);
+  LEDS.setBrightness(16);
   
   LEDS.addLeds<WS2811,2, GRB>(leds[0], ledCount);
   LEDS.addLeds<WS2811,3, GRB>(leds[1], ledCount);
@@ -172,30 +180,43 @@ void rotatingRainbow()
     }
 }
 
-void threeColorEntrance()
+void colorWipe(CRGB color)
+{
+  for(int i = 0;i<ledCount;i++)
+  {
+    setPixel(i, color);
+    LEDS.show();
+    delay(50);
+  }
+}
+
+void setEvery9th(byte index, CRGB color)
 {
   for (int i = 0;i<ledCount;i++)
   {
-    if (i%3 == 0)
-        setPixel(i, CRGB::LimeGreen);
+    if (i%9 == index)
+        setPixel(i, color);
   }
   LEDS.show();
-  delay(500);
-  for (int i = 0;i<ledCount;i++)
-  {
-    if (i%3 == 1)
-        setPixel(i, CRGB::Purple);
-  }
-  LEDS.show();
-  delay(500);
-  for (int i = 0;i<ledCount;i++)
-  {
-    if (i%3 == 2)
-        setPixel(i, CRGB::Blue);
-  }
-  LEDS.show();
-  delay(1000);
+  delay(200);
 
+}
+
+void threeColorEntrance()
+{
+  colorWipe(CRGB::LimeGreen);
+  colorWipe(CRGB::Purple);
+  colorWipe(CRGB::Blue);
+
+  setEvery9th(0, CRGB::LimeGreen);
+  setEvery9th(1, CRGB::LimeGreen);
+  setEvery9th(2, CRGB::LimeGreen);
+  setEvery9th(3, CRGB::Purple);
+  setEvery9th(4, CRGB::Purple);
+  setEvery9th(5, CRGB::Purple);
+  setEvery9th(6, CRGB::Blue);
+  setEvery9th(7, CRGB::Blue);
+  setEvery9th(8, CRGB::Blue);
 }
 
 void threeColorWipe(boolean firstLoop)
@@ -204,15 +225,21 @@ void threeColorWipe(boolean firstLoop)
     {
       for (int i = 0;i<ledCount;i++)
       {
-        switch(i%3)
+        switch(i%9)
         {
           case 0:
+          case 1:
+          case 2:          
             setPixel(i, CRGB::LimeGreen);
             break;
-          case 1:
+          case 3:
+          case 4:
+          case 5:
             setPixel(i, CRGB::Purple);
             break;
-          case 2:
+          case 6:
+          case 7:
+          case 8:
             setPixel(i, CRGB::Blue);
             break;
         }
@@ -221,20 +248,15 @@ void threeColorWipe(boolean firstLoop)
     else
     {
 
-      // gross hack
-      CRGB temp0 = leds[0][ledCount-1];
-      CRGB temp1 = leds[1][ledCount-1];
-      for(int i = ledCount-1; i > 0; i-- ) 
+      for (byte strip = 0;strip<NUM_STRIPS;strip++)
       {
-        leds[0][i] = leds[0][i-1];
+        CRGB temp = leds[strip][ledCount-1];
+        for(int i = ledCount-1; i > 0; i-- ) 
+        {
+          leds[strip][i] = leds[strip][i-1];
+        }
+        leds[strip][0] = temp;
       }
-      for(int i = ledCount-1; i > 0; i-- ) 
-      {
-        leds[1][i] = leds[0][i-1];
-      }
-        leds[0][0] = temp0;
-        leds[1][0] = temp1;
-
     }
 }
 
@@ -248,7 +270,7 @@ void loop()
     {
         threeColorWipe(false);
         LEDS.show();
-        delay(100);
+        delay(75);
     }
 
     for (int i = 0;i<1000;i++)

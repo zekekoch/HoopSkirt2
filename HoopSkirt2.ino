@@ -7,63 +7,61 @@ const int NUM_STRIPS = 2;
 //CRGB leds[ledCount];
 CRGB actualLeds[NUM_STRIPS][actualLedCount];
 
+// statically link in the controllers to avoid 'new'
+WS2811Controller800Khz<2, GRB> ledController0;
+WS2811Controller800Khz<3, GRB> ledController1;
+
+// this holds the 
 const byte hoopStart = 0;
 const byte hoopEnd = 1;
 byte hoop[3][2] = 
 { 
-  {0,49},
-  {50,89},
-  {90,133}
+  {0,50},
+  {50,90},
+  {90,134}
 };
-
 
 int BOTTOM_INDEX = 0;
 int TOP_INDEX = int(ledCount/2);
 int EVENODD = ledCount%2;
 
-//CRGB ledsX[ledCount]; //-ARRAY FOR COPYING WHATS IN THE LED STRIP CURRENTLY (FOR CELL-AUTOMATA, ETC)
 //-PERISTENT VARS
 byte idex = 0;        //-LED INDEX (0 to ledCount-1
 byte ihue = 0;        //-HUE (0-360)
 int ibright = 0;     //-BRIGHTNESS (0-255)
 int isat = 0;        //-SATURATION (0-255)
-bool bounceForward = true;  //-SWITCH FOR COLOR BOUNCE (0-1)
-int bouncedirection = 0;
 float tcount = 0.0;      //-INC VAR FOR SIN LOOPS
 int lcount = 0;      //-ANOTHER COUNTING VAR
 
 
-void assert(bool eval, String errorMessage)
-{
-  if(!eval)
-    Serial.println(errorMessage);
-}
-
+// this function solves the problem of mapping a single 
+// virtual strip into two smaller physical strips
+// it has some hard coded constants (hacks).  Be careful.
+//
+// TODO: I think that there is also an off by one error here
 void setPixel(int currentPixel, CRGB c) 
 {
   if(currentPixel < 0)
-    actualLeds[1][ledCount-currentPixel] = c;
-//  assert(currentPixel < ledCount, "currentPixel > ledCount");
-  if(currentPixel < 50)
   {
-//    Serial.print("leds[0][");Serial.print(currentPixel);Serial.print("] = ");Serial.println(c);
+    return;
+  }
+  else if(currentPixel < 50)
+  {
     actualLeds[0][currentPixel] = c;
   } 
   else
   {
-//    Serial.println(currentPixel);
-//    Serial.print("leds[1][");Serial.print(currentPixel-actualLedCount);Serial.print("] = ");Serial.println(c);
     actualLeds[1][currentPixel-50] = c;
   }
 } 
 
 CRGB getPixel(int currentPixel)
 {
-  //Serial.print("current pixel ");Serial.println(currentPixel);
   if(currentPixel < 0)
-    return actualLeds[1][ledCount-currentPixel];
-
-  if(currentPixel < 50)
+  {
+    return CRGB::Black;
+  }
+  else if(currentPixel < 50)
   {
     return actualLeds[0][currentPixel];
   } 
@@ -92,11 +90,6 @@ void fillRainbow()
   static byte hue = 0;
   fill_rainbow(actualLeds[0], actualLedCount,hue++ , 10);
   fill_rainbow(actualLeds[1], actualLedCount,hue , 10);
-//  for(int i = 0;i<ledCount;i++)
-//  {
-//    setPixel(i, CHSV(hue++,255,255));
-//  }
-//  hue++;
   showLeds(5);
 }
 
@@ -127,14 +120,18 @@ int antipodal_index(int i) {
 
 
 //-FIND ADJACENT INDEX CLOCKWISE
-int adjacent_cw(int i) {
+int adjacent_cw(int i) 
+{
     int r;
-    if (i < ledCount - 1) {
+    if (i < ledCount - 1) 
+    {
         r = i + 1;
     }
-    else {
+    else 
+    {
         r = 0;
     }
+
     return r;
 }
 
@@ -157,12 +154,13 @@ void setup()
   // setting brightness to 25% brightness
   LEDS.setBrightness(32);
   
-  LEDS.addLeds<WS2811,2, GRB>(actualLeds[0], actualLedCount);
-  LEDS.addLeds<WS2811,3, GRB>(actualLeds[1], actualLedCount);
+  LEDS.addLeds(&ledController0, actualLeds[0], actualLedCount);
+  LEDS.addLeds(&ledController1, actualLeds[1], actualLedCount);
       
   Serial.begin(9600);
+
   fillSolid(CRGB::Black); //-BLANK STRIP
-  showLeds(1);
+  showLeds(0);
 }
 
 void drawTracer(byte trailLength, bool isForward)
@@ -173,18 +171,16 @@ void drawTracer(byte trailLength, bool isForward)
 
   for(int i = 0;i<trailLength;i++)
   {
-      setPixel(adjacent_cw(idex-i), CHSV(0, 255, 255 - trailDecay*i));
-      setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(128, 255, 255 - trailDecay*i));
+    // setPixel eats any "offscreen" pixels
+    setPixel(adjacent_cw(idex-i), CHSV(0, 255, 255 - trailDecay*i));
+    setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(128, 255, 255 - trailDecay*i));
   }  
 }
 
 void nonReactiveFade(CRGB baseColor, CRGB highlightColor) { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
-    static long lastBounceTime;
-    const int bounceInterval = 250;
+    static boolean bounceForward = true;
     
-    static byte phase = 0;
-    static byte trailLength = 8;
-    byte trailDecay = (255-64)/trailLength;
+    static byte trailLength = 7;
 
     fillSolid(baseColor);
     
@@ -306,19 +302,16 @@ void rotateStrip(long ms)
 
 void rotateStrip(long duration, long delayms)
 {
-  long endTime = millis() + duration;
+  unsigned long endTime = millis() + duration;
 
   while(millis() < endTime)
   {
-
     // store the last pixel
     CRGB temp = getPixel(ledCount-1);
-    //Serial.print("#");Serial.print(temp.r);Serial.print(":");Serial.print(temp.g);Serial.print(":");Serial.print(temp.b);Serial.println();
 
     // copy the last one to the previous one
     for(int i = ledCount-1; i > 0; i--) 
     {
-      //Serial.print("set pixel ");Serial.print(i);Serial.print(" to ");Serial.print(i-1);Serial.print(":");Serial.print((int)getPixel(i-1));Serial.println();
       setPixel(i, getPixel(i-1));
     }
 
@@ -330,11 +323,6 @@ void rotateStrip(long duration, long delayms)
 
 void showLeds(long delayms)
 {
-//  for(int i = 0;i<ledCount;i++)
-//  {
-//    setPixel(i, leds[i]);
-//  }
-
   LEDS.show();
   delay(delayms);
 }
@@ -346,25 +334,6 @@ void loop()
   const CRGB highlightColor = CRGB::Red;
   const CRGB contrastColor = CRGB::LimeGreen;
   const CRGB baseColor = CRGB::Purple;
-  const CRGB color4 = CRGB::Black;
-
-/*
-  fillSolid(CRGB::Black);
-  showLeds(0);
-
-  threeColorWipe(contrastColor, baseColor, baseColor);
-  rotateStrip(30);
-
-
-  fillHoop(0,CRGB::Red);
-  showLeds(2000);
-
-  fillHoop(1,CRGB::Blue);
-  showLeds(2000);
-
-  fillHoop(2,CRGB::Green);
-  showLeds(2000);
-*/
 
   colorWipe(contrastColor);
   colorWipe(highlightColor);

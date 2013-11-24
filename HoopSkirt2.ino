@@ -21,18 +21,12 @@ byte hoop[3][2] =
   {90,134}
 };
 
-int BOTTOM_INDEX = 0;
-int TOP_INDEX = int(ledCount/2);
-int EVENODD = ledCount%2;
+const int BottomIndex = 0;
+const int TopIndex = int(ledCount/2);
+const int isEven = ledCount%2;
 
 //-PERISTENT VARS
 byte idex = 0;        //-LED INDEX (0 to ledCount-1
-byte ihue = 0;        //-HUE (0-360)
-int ibright = 0;     //-BRIGHTNESS (0-255)
-int isat = 0;        //-SATURATION (0-255)
-float tcount = 0.0;      //-INC VAR FOR SIN LOOPS
-int lcount = 0;      //-ANOTHER COUNTING VAR
-
 
 // this function solves the problem of mapping a single 
 // virtual strip into two smaller physical strips
@@ -88,8 +82,8 @@ void fillSolid(CRGB color)
 void fillRainbow()
 {
   static byte hue = 0;
-  fill_rainbow(actualLeds[0], actualLedCount,hue++ , 10);
-  fill_rainbow(actualLeds[1], actualLedCount,hue , 10);
+  fill_rainbow(actualLeds[0], actualLedCount, hue++, 10);
+  fill_rainbow(actualLeds[1], actualLedCount, hue, 10);
   showLeds(0);
 }
 
@@ -101,11 +95,12 @@ void fillHoop(byte whichHoop, CRGB color)
 
 
 //-FIND INDEX OF HORIZONAL OPPOSITE LED
-int horizontal_index(int i) {
+int horizontal_index(int i) 
+{
     //-ONLY WORKS WITH INDEX < TOPINDEX
-    if (i == BOTTOM_INDEX) {return BOTTOM_INDEX;}
-    if (i == TOP_INDEX && EVENODD == 1) {return TOP_INDEX + 1;}
-    if (i == TOP_INDEX && EVENODD == 0) {return TOP_INDEX;}
+    if (i == BottomIndex) {return BottomIndex;}
+    if (i == TopIndex && isEven == 1) {return TopIndex + 1;}
+    if (i == TopIndex && isEven == 0) {return TopIndex;}
     return ledCount - i;
 }
 
@@ -113,8 +108,8 @@ int horizontal_index(int i) {
 //-FIND INDEX OF ANTIPODAL OPPOSITE LED
 int antipodal_index(int i) {
     //int N2 = int(ledCount/2);
-    int iN = i + TOP_INDEX;
-    if (i >= TOP_INDEX) {iN = ( i + TOP_INDEX ) % ledCount; }
+    int iN = i + TopIndex;
+    if (i >= TopIndex) {iN = ( i + TopIndex ) % ledCount; }
     return iN;
 }
 
@@ -266,7 +261,6 @@ void threeColorAlternate(boolean firstLoop, CRGB firstColor, CRGB secondColor, C
   }
 }
 
-
 void threeColorWipe(CRGB firstColor, CRGB secondColor, CRGB thirdColor)
 {
   for (int i = 0;i<ledCount;i++)
@@ -349,8 +343,8 @@ void loop()
 
   for (int i = 0;i<1000;i++)
   {
-      nonReactiveFade(baseColor, highlightColor, contrastColor);
-      showLeds(30);
+    nonReactiveFade(baseColor, highlightColor, contrastColor);
+    showLeds(30);
   }
 
 
@@ -366,7 +360,7 @@ void loop()
 
   rotateTriads(50, 0x00FF7F, 0xFF00FF, 0xFF007F); // standard colors
   rotateTriads(40, 0x00FF7F, 0xFE00FF, 0xFF0000); // bring on the red
-  rotateTriads(50,0xFF0000, 0x00FF7F, 0x007FFF); // bring on the blue
+  rotateTriads(50, 0xFF0000, 0x00FF7F, 0x007FFF); // bring on the blue
   rotateTriads(60, 0x007FFF, 0xFF0000, 0xFEFF00); // bring on the yellos
 
   for (int i = 0;i<1000;i++)

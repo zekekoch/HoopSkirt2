@@ -4,7 +4,7 @@
 const int ledCount = 134;
 const int actualLedCount = 84;
 const int NUM_STRIPS = 2;
-CRGB leds[ledCount];
+//CRGB leds[ledCount];
 CRGB actualLeds[NUM_STRIPS][actualLedCount];
 
 const byte hoopStart = 0;
@@ -39,7 +39,10 @@ void assert(bool eval, String errorMessage)
     Serial.println(errorMessage);
 }
 
-void setPixel(int currentPixel, CRGB c) {
+void setPixel(int currentPixel, CRGB c) 
+{
+  if(currentPixel < 0)
+    actualLeds[1][ledCount-currentPixel] = c;
 //  assert(currentPixel < ledCount, "currentPixel > ledCount");
   if(currentPixel < 50)
   {
@@ -56,7 +59,7 @@ void setPixel(int currentPixel, CRGB c) {
 
 CRGB getPixel(int currentPixel)
 {
-  Serial.print("current pixel ");Serial.println(currentPixel);
+  //Serial.print("current pixel ");Serial.println(currentPixel);
   if(currentPixel < 0)
     return actualLeds[1][ledCount-currentPixel];
 
@@ -82,6 +85,19 @@ void fillSolid(CRGB color)
 {
   for(int i = 0;i<3;i++)
     fillHoop(i, color);
+}
+
+void fillRainbow()
+{
+  static byte hue = 0;
+  fill_rainbow(actualLeds[0], actualLedCount,hue++ , 10);
+  fill_rainbow(actualLeds[1], actualLedCount,hue , 10);
+//  for(int i = 0;i<ledCount;i++)
+//  {
+//    setPixel(i, CHSV(hue++,255,255));
+//  }
+//  hue++;
+  showLeds(5);
 }
 
 void fillHoop(byte whichHoop, CRGB color)
@@ -135,16 +151,6 @@ int adjacent_ccw(int i) {
     return r;
 }
 
-void HSVtoRGB(int hue, int sat, int val, CRGB& c) {
-    hsv2rgb_rainbow(CHSV(hue, sat, val), c);
-}
-
-CRGB HSVtoRGB(int hue, int sat, int val) {
-    CRGB c;
-    hsv2rgb_rainbow(CHSV(hue, sat, val), c);
-    return c;
-}
-
 void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
@@ -156,7 +162,7 @@ void setup()
       
   Serial.begin(9600);
   fillSolid(CRGB::Black); //-BLANK STRIP
-  showLeds(0);
+  showLeds(1);
 }
 
 void drawTracer(byte trailLength, bool isForward)
@@ -211,7 +217,7 @@ void colorWipe(CRGB color)
   for(int i = 0;i<ledCount;i++)
   {
     setPixel(i, color);
-    showLeds(25);
+    showLeds(10);
   }
 }
 
@@ -298,19 +304,21 @@ void rotateStrip(long ms)
   rotateStrip(ms, 75);
 }
 
-void rotateStrip(long ms, long delayms)
+void rotateStrip(long duration, long delayms)
 {
-  long endTime = millis() + ms;
+  long endTime = millis() + duration;
 
   while(millis() < endTime)
   {
 
     // store the last pixel
     CRGB temp = getPixel(ledCount-1);
+    //Serial.print("#");Serial.print(temp.r);Serial.print(":");Serial.print(temp.g);Serial.print(":");Serial.print(temp.b);Serial.println();
 
     // copy the last one to the previous one
     for(int i = ledCount-1; i > 0; i--) 
     {
+      //Serial.print("set pixel ");Serial.print(i);Serial.print(" to ");Serial.print(i-1);Serial.print(":");Serial.print((int)getPixel(i-1));Serial.println();
       setPixel(i, getPixel(i-1));
     }
 
@@ -340,6 +348,10 @@ void loop()
   const CRGB baseColor = CRGB::Purple;
   const CRGB color4 = CRGB::Black;
 
+/*
+  fillSolid(CRGB::Black);
+  showLeds(0);
+
   threeColorWipe(contrastColor, baseColor, baseColor);
   rotateStrip(30);
 
@@ -352,43 +364,43 @@ void loop()
 
   fillHoop(2,CRGB::Green);
   showLeds(2000);
+*/
 
   colorWipe(contrastColor);
   colorWipe(highlightColor);
   colorWipe(baseColor);
 
   threeColorWipe(contrastColor, baseColor, baseColor);
-  rotateStrip(3000, 75);
+  rotateStrip(6000, 75);
 
   threeColorWipe(contrastColor, baseColor, highlightColor);
-  rotateStrip(5000, 75);
+  rotateStrip(6000, 75);
 
   for(int i = 50;i>0;i--)
   {
     threeColorWipe(contrastColor, baseColor, highlightColor);
-    rotateStrip(50+i, 75);
+    rotateStrip(50+i, 25);
     threeColorWipe(highlightColor, contrastColor, baseColor);
-    rotateStrip(50+i, 75);
+    rotateStrip(50+i, 25);
     threeColorWipe(baseColor, highlightColor, contrastColor);
-    rotateStrip(50+i, 75);
+    rotateStrip(50+i, 25);
+  }
+  for (int i = 0;i<1000;i++)
+  {
+      fillRainbow();
   }
 
-  threeColorWipe(contrastColor, baseColor, highlightColor);
-  rotateStrip(5000);
+//  threeColorWipe(contrastColor, baseColor, highlightColor);
+//  rotateStrip(6000);
 
 //  threeColorWipe(baseColor, baseColor, highlightColor);
 //  rotateStrip(3000);
 
-  for (int i = 0;i<3000;i++)
+  for (int i = 0;i<1000;i++)
   {
       nonReactiveFade(baseColor, highlightColor);
       showLeds(30);
   }
 
-  for (int i = 0;i<1000;i++)
-  {
-      rotatingRainbow();
-      showLeds(15);
-  }
 }
 

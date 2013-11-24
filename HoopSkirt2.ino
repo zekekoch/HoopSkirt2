@@ -90,7 +90,7 @@ void fillRainbow()
   static byte hue = 0;
   fill_rainbow(actualLeds[0], actualLedCount,hue++ , 10);
   fill_rainbow(actualLeds[1], actualLedCount,hue , 10);
-  showLeds(5);
+  showLeds(0);
 }
 
 void fillHoop(byte whichHoop, CRGB color)
@@ -163,28 +163,36 @@ void setup()
   showLeds(0);
 }
 
-void drawTracer(byte trailLength, bool isForward)
+void drawTracer(byte trailLength, bool isForward, CRGB baseColor, CRGB highlightColor, CRGB contrastColor)
 {
-  byte trailDecay = (255-64)/trailLength;
 
-  fillSolid(CRGB::Purple);
+  baseColor /= 2;
+  fillSolid(baseColor);
+
+  CRGB c1 = highlightColor;
+  CRGB c2 = contrastColor;
+  byte fade = trailLength/2;
 
   for(int i = 0;i<trailLength;i++)
   {
     // setPixel eats any "offscreen" pixels
-    setPixel(adjacent_cw(idex-i), CHSV(0, 255, 255 - trailDecay*i));
-    setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(128, 255, 255 - trailDecay*i));
+//    setPixel(adjacent_cw(idex-i), CHSV(50, 255, 255 - trailDecay*i));
+//    setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(75, 255, 255 - trailDecay*i));
+    setPixel(adjacent_cw(idex-i), c1);
+    setPixel(antipodal_index(adjacent_cw(idex-i)), c2);
+    c1 += baseColor/fade;
+    c2 += baseColor/trailLength;
   }  
 }
 
-void nonReactiveFade(CRGB baseColor, CRGB highlightColor) { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
+void nonReactiveFade(CRGB baseColor, CRGB highlightColor, CRGB contrastColor) { //-BOUNCE COLOR (SIMPLE MULTI-LED FADE)
     static boolean bounceForward = true;
     
-    static byte trailLength = 7;
+    static byte trailLength = 6;
 
     fillSolid(baseColor);
     
-    drawTracer(trailLength, bounceForward);
+    drawTracer(trailLength, bounceForward, baseColor, highlightColor, contrastColor);
     if (bounceForward) {
         if (++idex == ledCount) {
             bounceForward = !bounceForward;
@@ -199,15 +207,6 @@ void nonReactiveFade(CRGB baseColor, CRGB highlightColor) { //-BOUNCE COLOR (SIM
     
 }
 
-void rotatingRainbow()
-{
-    static byte hue = 0;
-    for(int i = 0;i < NUM_STRIPS;i++)
-    {
-        fill_rainbow(actualLeds[i], ledCount, hue++, 10);
-    }
-}
-
 void colorWipe(CRGB color)
 {
   for(int i = 0;i<ledCount;i++)
@@ -216,8 +215,6 @@ void colorWipe(CRGB color)
     showLeds(10);
   }
 }
-
-
 
 void setEveryNth(byte index, byte num, CRGB color)
 {
@@ -327,13 +324,35 @@ void showLeds(long delayms)
   delay(delayms);
 }
 
+void rotateTriads(byte speed, CRGB baseColor, CRGB contrastColor, CRGB highlightColor)
+{
+  for(int i = 10;i>0;i--)
+    {
+      threeColorWipe(contrastColor, baseColor, highlightColor);
+      rotateStrip(speed*2, speed+i);
+      threeColorWipe(highlightColor, contrastColor, baseColor);
+      rotateStrip(speed*2, speed+i);
+      threeColorWipe(baseColor, highlightColor, contrastColor);
+      rotateStrip(speed*2, speed+i);
+    }  
+}
 
 int xAccel;
 void loop()
 {
-  const CRGB highlightColor = CRGB::Red;
-  const CRGB contrastColor = CRGB::LimeGreen;
-  const CRGB baseColor = CRGB::Purple;
+  const CRGB Pinkish = 0xFF007F;
+  const CRGB Purpleish = 0x00FF7F;
+
+  const CRGB highlightColor = Pinkish;  // redish
+  const CRGB contrastColor = CRGB::SpringGreen; // purplish
+  const CRGB baseColor = CRGB::Fuchsia; /// 0x7F00FF; // purplish
+
+  for (int i = 0;i<1000;i++)
+  {
+      nonReactiveFade(baseColor, highlightColor, contrastColor);
+      showLeds(30);
+  }
+
 
   colorWipe(contrastColor);
   colorWipe(highlightColor);
@@ -345,29 +364,19 @@ void loop()
   threeColorWipe(contrastColor, baseColor, highlightColor);
   rotateStrip(6000, 75);
 
-  for(int i = 50;i>0;i--)
-  {
-    threeColorWipe(contrastColor, baseColor, highlightColor);
-    rotateStrip(50+i, 25);
-    threeColorWipe(highlightColor, contrastColor, baseColor);
-    rotateStrip(50+i, 25);
-    threeColorWipe(baseColor, highlightColor, contrastColor);
-    rotateStrip(50+i, 25);
-  }
+  rotateTriads(50, 0x00FF7F, 0xFF00FF, 0xFF007F); // standard colors
+  rotateTriads(40, 0x00FF7F, 0xFE00FF, 0xFF0000); // bring on the red
+  rotateTriads(50,0xFF0000, 0x00FF7F, 0x007FFF); // bring on the blue
+  rotateTriads(60, 0x007FFF, 0xFF0000, 0xFEFF00); // bring on the yellos
+
   for (int i = 0;i<1000;i++)
   {
       fillRainbow();
   }
 
-//  threeColorWipe(contrastColor, baseColor, highlightColor);
-//  rotateStrip(6000);
-
-//  threeColorWipe(baseColor, baseColor, highlightColor);
-//  rotateStrip(3000);
-
   for (int i = 0;i<1000;i++)
   {
-      nonReactiveFade(baseColor, highlightColor);
+      nonReactiveFade(baseColor, highlightColor, contrastColor);
       showLeds(30);
   }
 

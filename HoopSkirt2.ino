@@ -4,6 +4,11 @@
 const int ledCount = 134;
 const int actualLedCount = 84;
 const int NUM_STRIPS = 2;
+
+const int BottomIndex = 0;
+const int TopIndex = int(ledCount/2);
+const int isEven = ledCount%2;
+
 //CRGB leds[ledCount];
 CRGB actualLeds[NUM_STRIPS][actualLedCount];
 
@@ -21,9 +26,6 @@ byte hoop[3][2] =
   {90,134}
 };
 
-const int BottomIndex = 0;
-const int TopIndex = int(ledCount/2);
-const int isEven = ledCount%2;
 
 //-PERISTENT VARS
 byte idex = 0;        //-LED INDEX (0 to ledCount-1
@@ -93,7 +95,6 @@ void fillHoop(byte whichHoop, CRGB color)
     setPixel(i,color);
 }
 
-
 //-FIND INDEX OF HORIZONAL OPPOSITE LED
 int horizontal_index(int i) 
 {
@@ -104,7 +105,6 @@ int horizontal_index(int i)
     return ledCount - i;
 }
 
-
 //-FIND INDEX OF ANTIPODAL OPPOSITE LED
 int antipodal_index(int i) {
     //int N2 = int(ledCount/2);
@@ -112,7 +112,6 @@ int antipodal_index(int i) {
     if (i >= TopIndex) {iN = ( i + TopIndex ) % ledCount; }
     return iN;
 }
-
 
 //-FIND ADJACENT INDEX CLOCKWISE
 int adjacent_cw(int i) 
@@ -130,7 +129,6 @@ int adjacent_cw(int i)
     return r;
 }
 
-
 //-FIND ADJACENT INDEX COUNTER-CLOCKWISE
 int adjacent_ccw(int i) {
     int r;
@@ -147,12 +145,12 @@ void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
   // setting brightness to 25% brightness
-  LEDS.setBrightness(32);
+  LEDS.setBrightness(64);
   
   LEDS.addLeds(&ledController0, actualLeds[0], actualLedCount);
   LEDS.addLeds(&ledController1, actualLeds[1], actualLedCount);
       
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
   fillSolid(CRGB::Black); //-BLANK STRIP
   showLeds(0);
@@ -160,7 +158,6 @@ void setup()
 
 void drawTracer(byte trailLength, bool isForward, CRGB baseColor, CRGB highlightColor, CRGB contrastColor)
 {
-
   baseColor /= 2;
   fillSolid(baseColor);
 
@@ -170,9 +167,6 @@ void drawTracer(byte trailLength, bool isForward, CRGB baseColor, CRGB highlight
 
   for(int i = 0;i<trailLength;i++)
   {
-    // setPixel eats any "offscreen" pixels
-//    setPixel(adjacent_cw(idex-i), CHSV(50, 255, 255 - trailDecay*i));
-//    setPixel(antipodal_index(adjacent_cw(idex-i)), CHSV(75, 255, 255 - trailDecay*i));
     setPixel(adjacent_cw(idex-i), c1);
     setPixel(antipodal_index(adjacent_cw(idex-i)), c2);
     c1 += baseColor/fade;
@@ -194,7 +188,6 @@ void nonReactiveFade(CRGB baseColor, CRGB highlightColor, CRGB contrastColor) { 
             idex--;
         }
     } else {
-        //todo: the trail is running off the array
         if (--idex == 0) {
             bounceForward = !bounceForward;
         }
@@ -341,13 +334,6 @@ void loop()
   const CRGB contrastColor = CRGB::SpringGreen; // purplish
   const CRGB baseColor = CRGB::Fuchsia; /// 0x7F00FF; // purplish
 
-  for (int i = 0;i<1000;i++)
-  {
-    nonReactiveFade(baseColor, highlightColor, contrastColor);
-    showLeds(30);
-  }
-
-
   colorWipe(contrastColor);
   colorWipe(highlightColor);
   colorWipe(baseColor);
@@ -370,8 +356,8 @@ void loop()
 
   for (int i = 0;i<1000;i++)
   {
-      nonReactiveFade(baseColor, highlightColor, contrastColor);
-      showLeds(30);
+    nonReactiveFade(Pinkish, baseColor, contrastColor);
+    showLeds(30);
   }
 
 }

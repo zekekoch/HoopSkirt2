@@ -145,7 +145,7 @@ void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
   // setting brightness to 25% brightness
-  LEDS.setBrightness(32);
+  LEDS.setBrightness(48);
   
   LEDS.addLeds(&ledController0, actualLeds[0], actualLedCount);
   LEDS.addLeds(&ledController1, actualLeds[1], actualLedCount);
@@ -313,7 +313,7 @@ void showLeds(long delayms)
 
 void rotateTriads(byte speed, CRGB baseColor, CRGB contrastColor, CRGB highlightColor)
 {
-  for(int i = 9;i>0;i--)
+  for(int i = 18;i>0;i--)
     {
       threeColorWipe(contrastColor, baseColor, highlightColor);
       rotateStrip(speed*2, speed+i);
@@ -328,6 +328,8 @@ int xAccel;
 void loop()
 {
   const CRGB Pinkish = 0xFF007F;
+  CRGB dimPinkish = Pinkish;
+  dimPinkish /=2;
   const CRGB Purpleish = 0x00FF7F;
 
   const CRGB highlightColor = Pinkish;  // redish
@@ -338,18 +340,22 @@ void loop()
   colorWipe(highlightColor);
   colorWipe(baseColor);
 
+  colorWipe(contrastColor);
+  colorWipe(highlightColor);
+  colorWipe(baseColor);
+
   threeColorWipe(contrastColor, baseColor, baseColor);
-  rotateStrip(6000, 75);
+  rotateStrip(12000, 75);
 
   threeColorWipe(contrastColor, baseColor, highlightColor);
-  rotateStrip(6000, 75);
+  rotateStrip(12000, 75);
 
   rotateTriads(50, 0x00FF7F, 0xFF00FF, 0xFF007F); // standard colors
   rotateTriads(40, 0x00FF7F, 0xFE00FF, 0xFF0000); // bring on the red
   rotateTriads(50, 0x00FF7F, 0x007FFF, 0xFF0000); // bring on the blue
   rotateTriads(60, 0xFEFF00, 0x007FFF, 0xFF0000); // bring on the yellos
 
-  for (int i = 0;i<1000;i++)
+  for (int i = 0;i<2000;i++)
   {
       fillRainbow();
   }

@@ -13,8 +13,8 @@ const int isEven = ledCount%2;
 CRGB actualLeds[NUM_STRIPS][actualLedCount];
 
 // statically link in the controllers to avoid 'new'
-WS2811Controller800Khz<2, GRB> ledController0;
-WS2811Controller800Khz<3, GRB> ledController1;
+WS2811Controller800Khz<12, GRB> ledController0;
+WS2811Controller800Khz<13, GRB> ledController1;
 
 // this holds the 
 const byte hoopStart = 0;
@@ -145,7 +145,7 @@ void setup()
 {
   // For safety (to prevent too high of a power draw), the test case defaults to
   // setting brightness to 25% brightness
-  LEDS.setBrightness(64);
+  LEDS.setBrightness(32);
   
   LEDS.addLeds(&ledController0, actualLeds[0], actualLedCount);
   LEDS.addLeds(&ledController1, actualLeds[1], actualLedCount);
@@ -313,7 +313,7 @@ void showLeds(long delayms)
 
 void rotateTriads(byte speed, CRGB baseColor, CRGB contrastColor, CRGB highlightColor)
 {
-  for(int i = 10;i>0;i--)
+  for(int i = 9;i>0;i--)
     {
       threeColorWipe(contrastColor, baseColor, highlightColor);
       rotateStrip(speed*2, speed+i);
@@ -346,8 +346,8 @@ void loop()
 
   rotateTriads(50, 0x00FF7F, 0xFF00FF, 0xFF007F); // standard colors
   rotateTriads(40, 0x00FF7F, 0xFE00FF, 0xFF0000); // bring on the red
-  rotateTriads(50, 0xFF0000, 0x00FF7F, 0x007FFF); // bring on the blue
-  rotateTriads(60, 0x007FFF, 0xFF0000, 0xFEFF00); // bring on the yellos
+  rotateTriads(50, 0x00FF7F, 0x007FFF, 0xFF0000); // bring on the blue
+  rotateTriads(60, 0xFEFF00, 0x007FFF, 0xFF0000); // bring on the yellos
 
   for (int i = 0;i<1000;i++)
   {
